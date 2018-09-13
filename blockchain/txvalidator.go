@@ -207,21 +207,30 @@ func CheckTransactionOutput(txn *core.Transaction) error {
 		return nil
 	}
 
-	if txn.IsRechargeToSideChainTx() {
-		return nil
-	}
-
 	if len(txn.Outputs) < 1 {
 		return errors.New("transaction has no outputs")
 	}
 
 	// check if output address is valid
 	for _, output := range txn.Outputs {
+		if output.AssetID == EmptyHash {
+			return errors.New("asset id is nil")
+		} else if output.AssetID == DefaultLedger.Blockchain.AssetID {
+			if output.Value < 0 || output.TokenValue.Sign() != 0 {
+				return errors.New("invalid transaction output with ela asset id")
+			}
+		} else {
+			if txn.IsRechargeToSideChainTx() || txn.IsTransferCrossChainAssetTx() {
+				return errors.New("cross chain asset tx asset id should only be ela asset id")
+			}
+			if output.TokenValue.Sign() < 0 || output.Value != 0 {
+				return errors.New("invalid transaction output with token asset id")
+			}
+		}
 		if !CheckOutputProgramHash(output.ProgramHash) {
 			return errors.New("output address is invalid")
 		}
 	}
-
 	return nil
 }
 
