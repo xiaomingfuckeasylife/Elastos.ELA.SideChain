@@ -397,7 +397,7 @@ func CheckTransactionSignature(txn *core.Transaction) error {
 }
 
 func checkAmountPrecise(amount Fixed64, precision byte, assetPrecision byte) bool {
-	return amount.IntValue()%int64(math.Pow(10, float64(assetPrecision-precision))) == 0
+	return amount.IntValue()%int64(math.Pow10(int(assetPrecision-precision))) == 0
 }
 
 func CheckTransactionPayload(txn *core.Transaction) error {
