@@ -52,7 +52,6 @@ func (pool *TxPool) AppendToTxnPool(txn *core.Transaction) ErrCode {
 		log.Warn("[TxPool verifyTransactionWithTxnPool] failed", txn.Hash())
 		return errCode
 	}
-
 	txn.Fee = Fixed64(GetTxFee(txn, DefaultLedger.Blockchain.AssetID).Int64())
 	buf := new(bytes.Buffer)
 	txn.Serialize(buf)
@@ -375,7 +374,6 @@ func GetTxFee(tx *core.Transaction, assetId Uint256) *big.Int {
 	if err != nil {
 		return big.NewInt(0)
 	}
-
 	return feeMap[assetId]
 }
 
@@ -420,7 +418,6 @@ func GetTxFeeMap(tx *core.Transaction) (map[Uint256]*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	var inputs = make(map[Uint256]big.Int)
 	var outputs = make(map[Uint256]big.Int)
 	for _, v := range reference {
@@ -449,7 +446,7 @@ func GetTxFeeMap(tx *core.Transaction) (map[Uint256]*big.Int, error) {
 
 		amount, ok := outputs[v.AssetID]
 		if ok {
-			outputs[v.AssetID] = *amount.Add(&amount, &value)
+			outputs[v.AssetID] = *new(big.Int).Add(&amount, &value)
 		} else {
 			outputs[v.AssetID] = value
 		}

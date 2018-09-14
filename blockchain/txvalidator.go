@@ -322,14 +322,6 @@ func CheckTransactionFee(txn *core.Transaction) error {
 	var tokenInputAmount = new(big.Int).SetInt64(0)
 	var elaOutputAmount = Fixed64(0)
 	var tokenOutputAmount = new(big.Int).SetInt64(0)
-	for _, output := range txn.Outputs {
-		if output.AssetID.IsEqual(DefaultLedger.Blockchain.AssetID) {
-			elaOutputAmount += output.Value
-		} else {
-			tokenOutputAmount.Add(tokenOutputAmount, &(output.TokenValue))
-		}
-	}
-
 	references, err := DefaultLedger.Store.GetTxReference(txn)
 	if err != nil {
 		return err
@@ -360,7 +352,6 @@ func CheckTransactionFee(txn *core.Transaction) error {
 			return errors.New("transaction fee is not enough")
 		}
 	}
-
 	tokenBalance := tokenInputAmount.Sub(tokenInputAmount, tokenOutputAmount)
 	if tokenBalance.Sign() != 0 {
 		return errors.New("token amount is not balanced")

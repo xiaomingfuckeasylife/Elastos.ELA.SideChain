@@ -47,7 +47,6 @@ func GetTransactionInfo(header *Header, tx *Transaction) *TransactionInfo {
 		inputs[i].VOut = v.Previous.Index
 		inputs[i].Sequence = v.Sequence
 	}
-
 	outputs := make([]OutputInfo, len(tx.Outputs))
 	for i, v := range tx.Outputs {
 		outputs[i].Value = v.Value.String()
@@ -623,11 +622,6 @@ func SendRawTransaction(param Params) map[string]interface{} {
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		return ResponsePack(InvalidTransaction, "transaction deserialize error")
 	}
-
-	for _, v := range txn.Outputs {
-		log.Info("v.TokenValue:", v.TokenValue.String())
-	}
-
 	if errCode := VerifyAndSendTx(&txn); errCode != Success {
 		return ResponsePack(errCode, errCode.Message())
 	}
