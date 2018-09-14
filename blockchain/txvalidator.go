@@ -110,8 +110,8 @@ func CheckTransactionContext(txn *core.Transaction) ErrCode {
 		return ErrUTXOLocked
 	}
 
-	if err := CheckTransactionBalance(txn); err != nil {
-		log.Warn("[CheckTransactionBalance],", err)
+	if err := CheckTransactionFee(txn); err != nil {
+		log.Warn("[CheckTransactionFee],", err)
 		return ErrTransactionBalance
 	}
 
@@ -317,33 +317,54 @@ func CheckAssetPrecision(txn *core.Transaction) error {
 	return nil
 }
 
-func CheckTransactionBalance(txn *core.Transaction) error {
-	for _, v := range txn.Outputs {
-		if v.AssetID.IsEqual(DefaultLedger.Blockchain.AssetID) {
-			if v.Value < Fixed64(0) {
-				return errors.New("Invalide transaction UTXO output Value.")
-			}
+func CheckTransactionFee(txn *core.Transaction) error {
+	var elaInputAmount = Fixed64(0)
+	var tokenInputAmount = new(big.Int).SetInt64(0)
+	var elaOutputAmount = Fixed64(0)
+	var tokenOutputAmount = new(big.Int).SetInt64(0)
+	for _, output := range txn.Outputs {
+		if output.AssetID.IsEqual(DefaultLedger.Blockchain.AssetID) {
+			elaOutputAmount += output.Value
 		} else {
-			if v.TokenValue.Sign() < 0 {
-				return errors.New("Invalide transaction UTXO output TokenValue.")
-			}
+			tokenOutputAmount.Add(tokenOutputAmount, &(output.TokenValue))
 		}
-
 	}
-	results, err := GetTxFeeMap(txn)
+
+	references, err := DefaultLedger.Store.GetTxReference(txn)
 	if err != nil {
 		return err
 	}
-	for assetID, totalFeeOfAsset := range results {
-		if assetID.IsEqual(DefaultLedger.Blockchain.AssetID) {
-			if totalFeeOfAsset.Cmp(big.NewInt(int64(config.Parameters.PowConfiguration.MinTxFee))) < 0 {
-				return fmt.Errorf("Transaction fee not enough")
-			}
-		} else if txn.TxType != core.RegisterAsset && totalFeeOfAsset.Sign() != 0 {
-			return fmt.Errorf("Transaction token asset fee should be 0")
+
+	for _, output := range references {
+		if output.AssetID.IsEqual(DefaultLedger.Blockchain.AssetID) {
+			elaInputAmount += output.Value
+		} else {
+			tokenInputAmount.Add(tokenInputAmount, &(output.TokenValue))
+		}
+	}
+	for _, output := range txn.Outputs {
+		if output.AssetID.IsEqual(DefaultLedger.Blockchain.AssetID) {
+			elaOutputAmount += output.Value
+		} else {
+			tokenOutputAmount.Add(tokenOutputAmount, &(output.TokenValue))
 		}
 	}
 
+	elaBalance := elaInputAmount - elaOutputAmount
+	if txn.IsTransferCrossChainAssetTx() || txn.IsRechargeToSideChainTx() {
+		if int(elaBalance) < config.Parameters.MinCrossChainTxFee {
+			return errors.New("crosschain transaction fee is not enough")
+		}
+	} else {
+		if int(elaBalance) < config.Parameters.PowConfiguration.MinTxFee {
+			return errors.New("transaction fee is not enough")
+		}
+	}
+
+	tokenBalance := tokenInputAmount.Sub(tokenInputAmount, tokenOutputAmount)
+	if tokenBalance.Sign() != 0 {
+		return errors.New("token amount is not balanced")
+	}
 	return nil
 }
 

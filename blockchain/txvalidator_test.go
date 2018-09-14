@@ -409,7 +409,7 @@ func TestCheckTransactionBalance(t *testing.T) {
 	// WithdrawFromSideChain will pass check in any condition
 	tx := new(core.Transaction)
 	tx.TxType = core.WithdrawFromSideChain
-	err := CheckTransactionBalance(tx)
+	err := CheckTransactionFee(tx)
 	assert.NoError(t, err)
 
 	// deposit 100 ELA to foundation account
@@ -430,7 +430,7 @@ func TestCheckTransactionBalance(t *testing.T) {
 		{AssetID: DefaultLedger.Blockchain.AssetID, ProgramHash: FoundationAddress, Value: common.Fixed64(-20 * ELA)},
 		{AssetID: DefaultLedger.Blockchain.AssetID, ProgramHash: common.Uint168{}, Value: common.Fixed64(-60 * ELA)},
 	}
-	err = CheckTransactionBalance(tx)
+	err = CheckTransactionFee(tx)
 	assert.EqualError(t, err, "Invalide transaction UTXO output.")
 
 	// invalid transaction fee
@@ -439,7 +439,7 @@ func TestCheckTransactionBalance(t *testing.T) {
 		{AssetID: DefaultLedger.Blockchain.AssetID, ProgramHash: FoundationAddress, Value: common.Fixed64(30 * ELA)},
 		{AssetID: DefaultLedger.Blockchain.AssetID, ProgramHash: common.Uint168{}, Value: common.Fixed64(70 * ELA)},
 	}
-	err = CheckTransactionBalance(tx)
+	err = CheckTransactionFee(tx)
 	assert.EqualError(t, err, "Transaction fee not enough")
 
 	// rollback deposit above
